@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Advanced Automatic Code Reviewer</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/eslint/8.19.0/eslint.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/eslint-linter-browserify@8.45.0/linter.min.js"></script>
+<script type="module" src="javaScriptAnalyzer.js"></script>
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Roboto+Mono&family=Source+Sans+Pro:wght@400;600&display=swap');
+
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  font-family: 'Source Sans Pro', sans-serif;
+  background: #121212;
+  color: #e0e0e0;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+header {
+  background: linear-gradient(90deg, #4b6cb7, #182848);
+  padding: 1.2rem 2rem;
+  text-align: center;
+  font-weight: 600;
+  font-size: 1.9rem;
+  color: white;
+  letter-spacing: 1px;
+  user-select: none;
+}
+main {
+  flex: 1;
+  padding: 1.5rem 2rem;
+  max-width: 1100px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+label {
+  font-weight: 600;
+  margin-bottom: 0.4rem;
+  display: block;
+}
+select, textarea, button {
+  font-family: 'Roboto Mono', monospace;
+  font-size: 1rem;
+  border-radius: 6px;
+  border: none;
+  padding: 0.8rem;
+}
+select {
+  width: 180px;
+  background: #222;
+  color: #eee;
+}
+textarea {
+  background: #1e1e1e;
+  color: #d4d4d4;
+  resize: vertical;
+  min-height: 200px;
+  max-height: 450px;
+  border: 2px solid #333;
+  transition: border-color 0.3s ease;
+  font-family: 'Roboto Mono', monospace;
+}
+textarea:focus {
+  border-color: #4b6cb7;
+  outline: none;
+}
+button {
+  max-width: 160px;
+  background: #4b6cb7;
+  color: white;
+  cursor: pointer;
+  font-weight: bold;
+  margin-top: 0.5rem;
+  transition: background 0.3s ease;
+}
+button:hover {
+  background: #182848;
+}
+.output-section {
+  background: #1e1e1e;
+  border-radius: 8px;
+  padding: 1rem 1.2rem;
+  overflow-x: auto;
+  max-height: 300px;
+}
+.output-section h3 {
+  margin-top: 0;
+  margin-bottom: 0.6rem;
+  color: #4b6cb7;
+}
+pre {
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  font-family: 'Roboto Mono', monospace;
+  font-size: 0.9rem;
+  color: #d4d4d4;
+}
+.flex-row {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.flex-col {
+  flex: 1 1 300px;
+  min-width: 300px;
+}
+footer {
+  text-align: center;
+  padding: 1rem 0;
+  font-size: 0.9rem;
+  color: #555;
+}
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  height: 8px;
+  width: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background: #4b6cb7;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-track {
+  background: #222;
+}
+
+#loadingOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.75);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: #4b6cb7;
+  font-size: 1.5rem;
+  font-weight: 700;
+  z-index: 9999;
+  user-select: none;
+  font-family: 'Roboto Mono', monospace;
+  display: none;
+}
+</style>
+</head>
+<body>
+<header>Advanced Automatic Code Reviewer</header>
+<main>
+  <div>
+    <label for="language-select">Select Language:</label>
+    <select id="language-select" aria-label="Select programming language">
+      <option value="javascript">JavaScript</option>
+      <option value="python">Python</option>
+      <option value="java">Java</option>
+    </select>
+  </div>
+  <div>
+    <label for="code-input">Enter your code here:</label>
+    <textarea id="code-input" aria-label="Code input area" placeholder="Write or paste your code here..."></textarea>
+  </div>
+  <button id="analyze-btn" aria-label="Analyze code button" disabled>Loading analyzers...</button>
+  <div class="flex-row" style="margin-top: 1.5rem;">
+    <section class="output-section flex-col" aria-live="polite" aria-atomic="true" aria-relevant="all">
+      <h3>Errors & Warnings</h3>
+      <pre id="errors-output" aria-label="Errors and warnings output area">No analysis done yet.</pre>
+    </section>
+    <section class="output-section flex-col" aria-live="polite" aria-atomic="true" aria-relevant="all">
+      <h3>Suggestions</h3>
+      <pre id="suggestions-output" aria-label="Suggestions output area">No analysis done yet.</pre>
+    </section>
+  </div>
+  <section class="output-section" aria-live="polite" aria-atomic="true" aria-relevant="all" style="margin-top:1rem;">
+    <h3>Corrected / Optimized Code</h3>
+    <pre id="corrected-code-output" aria-label="Corrected and optimized code output area">No analysis done yet.</pre>
+  </section>
+</main>
+<footer>
+  &copy; 2024 Advanced Automatic Code Reviewer
+</footer>
+
+<div id="loadingOverlay">Loading Python engine...</div>
+
+<!-- ESLint -->
+<!-- <script src="https://cdn.jsdelivr.net/npm/eslint@8.44.0/dist/eslint.min.js"></script> -->
+<!-- Pyodide -->
+<script src="https://cdn.jsdelivr.net/pyodide/v0.23.4/full/pyodide.js"></script>
+
+<!-- Core JS -->
+<script src="pythonAnalyzer.js"></script>
+<script src="javaAnalyzer.js"></script>
+<script src="analyzer.js"></script>
+</body>
+</html>
